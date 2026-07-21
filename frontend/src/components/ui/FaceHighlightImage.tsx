@@ -42,26 +42,30 @@ export const FaceHighlightImage: React.FC<FaceHighlightImageProps> = ({ imageUrl
   const scaleY = dimensions.naturalHeight ? dimensions.height / dimensions.naturalHeight : 1;
 
   return (
-    <div className="relative inline-block max-w-full">
+    <div className="relative inline-block max-w-full overflow-hidden rounded-2xl border border-white/5 bg-slate-950">
       <img
         ref={imgRef}
         src={imageUrl}
-        alt="Analyzed"
+        alt="Analyzed face search results"
         onLoad={handleImageLoad}
-        className="max-w-full rounded-xl block"
+        className="max-w-full rounded-2xl block"
         loading="lazy"
       />
       {imageLoaded && faces.map((face, index) => (
         <div
           key={index}
-          className="absolute border-2 border-[#FFD600] bg-[#FFD600]/30 pointer-events-none transition-all duration-200"
+          className="absolute border-[1.5px] border-brand-yellow/80 bg-brand-yellow/10 rounded-lg transition-all duration-200 hover:bg-brand-yellow/20 hover:border-brand-yellow group cursor-default"
           style={{
             left: `${face.x * scaleX}px`,
             top: `${face.y * scaleY}px`,
             width: `${face.width * scaleX}px`,
             height: `${face.height * scaleY}px`,
           }}
-        />
+        >
+          <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-bg-dark/95 text-[10px] text-brand-yellow font-bold px-2 py-0.5 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none shadow-lg">
+            Face Match
+          </span>
+        </div>
       ))}
     </div>
   );

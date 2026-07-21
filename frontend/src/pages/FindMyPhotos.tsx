@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera, ChevronDown } from 'lucide-react';
 import { Card } from '@components/ui/Card';
 import { Button } from '@components/ui/Button';
@@ -18,7 +18,7 @@ export function FindMyPhotos() {
 
   useEffect(() => {
     eventService.getEvents().then((data) => {
-      setEvents(data.events);
+      setEvents(data.events || []);
     }).catch(() => {
       showToast('Failed to load events', 'error');
     });
@@ -32,11 +32,13 @@ export function FindMyPhotos() {
     setSearchResult(null);
     try {
       const data = await eventService.searchPrivateFaces(selectedEventId, selfieFile);
-      setSearchResult(data.result);
-      if (data.result.faces.length === 0) {
-        showToast('No matches found for this selfie.', 'info');
-      } else {
+      // Fallback if data format differs
+      const result = (data as any).result || (data as any).matches?.[0];
+      if (result) {
+        setSearchResult(result);
         showToast('Match found!', 'success');
+      } else {
+        showToast('No matches found for this selfie.', 'info');
       }
     } catch (err: any) {
       showToast(err.message || 'Search failed', 'error');
@@ -52,35 +54,35 @@ export function FindMyPhotos() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto animate-[fade-in_0.35s_ease-out]">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-black mb-2">Find My Photos</h1>
-        <p className="text-gray-500">
+        <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">Find My Photos</h1>
+        <p className="text-gray-400">
           Choose an event, upload a selfie, and we'll find every photo you appear in.
         </p>
       </div>
 
       {!searchResult ? (
-        <Card className="p-6 md:p-8 space-y-8">
+        <Card className="p-6 md:p-8 space-y-8 bg-surface-dark/20 border-white/5">
           {/* Step 1: Pick Event */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-6 h-6 rounded-full bg-[#FFD600] text-black text-xs font-bold flex items-center justify-center flex-shrink-0">
+              <span className="w-6 h-6 rounded-full bg-brand-yellow text-bg-dark text-xs font-bold flex items-center justify-center flex-shrink-0">
                 1
               </span>
-              <h2 className="font-semibold text-black">Select an Event</h2>
+              <h2 className="font-semibold text-white">Select an Event</h2>
             </div>
             <div className="relative">
               <select
                 id="event-select"
                 value={selectedEventId}
                 onChange={(e) => setSelectedEventId(e.target.value)}
-                className="w-full appearance-none px-4 py-3 pr-10 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD600] focus:border-transparent bg-white text-gray-800 transition-all"
+                className="w-full appearance-none px-4 py-3 pr-10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-yellow/50 bg-white/5 text-white transition-all cursor-pointer"
               >
-                <option value="">— Choose an event —</option>
+                <option value="" className="bg-bg-dark text-white">— Choose an event —</option>
                 {events.map((ev) => (
-                  <option key={ev.id} value={String(ev.id)}>
+                  <option key={ev.id} value={String(ev.id)} className="bg-bg-dark text-white">
                     {ev.title}
                   </option>
                 ))}
@@ -92,23 +94,23 @@ export function FindMyPhotos() {
           {/* Step 2: Upload Selfie */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-6 h-6 rounded-full bg-[#FFD600] text-black text-xs font-bold flex items-center justify-center flex-shrink-0">
+              <span className="w-6 h-6 rounded-full bg-brand-yellow text-bg-dark text-xs font-bold flex items-center justify-center flex-shrink-0">
                 2
               </span>
-              <h2 className="font-semibold text-black">Upload Your Selfie</h2>
+              <h2 className="font-semibold text-white">Upload Your Selfie</h2>
             </div>
 
             {selfieFile ? (
-              <div className="relative rounded-xl overflow-hidden bg-gray-100 h-52 border border-gray-200">
+              <div className="relative rounded-xl overflow-hidden bg-slate-950 h-52 border border-white/10">
                 <img
                   src={URL.createObjectURL(selfieFile)}
-                  alt="Your selfie"
+                  alt="Your selfie preview"
                   className="w-full h-full object-cover"
                 />
                 <button
                   type="button"
                   onClick={() => setSelfieFile(null)}
-                  className="absolute top-3 right-3 bg-white text-red-500 px-3 py-1 rounded-full text-sm font-medium shadow hover:bg-red-50 transition-colors"
+                  className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-lg transition-colors cursor-pointer"
                 >
                   Remove
                 </button>
@@ -124,7 +126,7 @@ export function FindMyPhotos() {
 
           {/* Search CTA */}
           <Button
-            className="w-full py-3 text-base"
+            className="w-full py-3.5 text-base"
             onClick={handleSearch}
             isLoading={searching}
             disabled={!selectedEventId || !selfieFile}
@@ -135,19 +137,19 @@ export function FindMyPhotos() {
         </Card>
       ) : (
         /* Result */
-        <Card className="p-6 md:p-8 space-y-6">
+        <Card className="p-6 md:p-8 space-y-6 bg-surface-dark/20 border-white/5">
           <div className="text-center">
-            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-              <Camera className="w-7 h-7 text-green-600" />
+            <div className="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-3">
+              <Camera className="w-7 h-7 text-green-400" />
             </div>
-            <h2 className="text-2xl font-bold text-green-700 mb-1">Match Found!</h2>
-            <p className="text-gray-500 text-sm">
+            <h2 className="text-2xl font-bold text-green-400 mb-1">Match Found!</h2>
+            <p className="text-gray-400 text-sm">
               Here's a photo of you from{' '}
-              <span className="font-semibold text-black">{selectedEvent?.title}</span>.
+              <span className="font-semibold text-white">{selectedEvent?.title}</span>.
             </p>
           </div>
 
-          <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+          <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg bg-slate-950 flex justify-center">
             <FaceHighlightImage
               imageUrl={searchResult.imageUrl}
               faces={searchResult.faces}

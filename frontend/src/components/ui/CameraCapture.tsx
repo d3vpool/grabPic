@@ -10,6 +10,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -17,7 +18,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
   const [starting, setStarting] = useState(true);
 
   const startCamera = useCallback(async (facing: 'user' | 'environment') => {
-    // Stop existing stream
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
@@ -47,12 +47,43 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
 
   useEffect(() => {
     startCamera(facingMode);
+    
+    // Accessibility: Keyboard trap & Escape close
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusableElements = dialogRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const first = focusableElements[0] as HTMLElement;
+        const last = focusableElements[focusableElements.length - 1] as HTMLElement;
+        if (e.shiftKey && document.activeElement === first) {
+          last.focus();
+          e.preventDefault();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          first.focus();
+          e.preventDefault();
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
+      window.removeEventListener('keydown', handleKeyDown);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(t => t.stop());
       }
     };
-  }, []);
+  }, [facingMode, startCamera]);
+
+  const handleClose = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+    }
+    onClose();
+  };
 
   const handleCapture = () => {
     const video = videoRef.current;
@@ -64,7 +95,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Mirror horizontally for front camera
     if (facingMode === 'user') {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
@@ -74,7 +104,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
     setPreview(dataUrl);
 
-    // Stop stream while showing preview
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
@@ -100,44 +129,50 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
       if (!blob) return;
       const file = new File([blob], `selfie-${Date.now()}.jpg`, { type: 'image/jpeg' });
       onCapture(file);
-      onClose();
+      handleClose();
     }, 'image/jpeg', 0.9);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-gray-950 rounded-2xl shadow-2xl overflow-hidden w-full max-w-lg">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Camera Capture Modal"
+    >
+      <div
+        ref={dialogRef}
+        className="bg-surface-dark border border-white/10 rounded-3xl shadow-2xl overflow-hidden w-full max-w-lg"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <h2 className="text-white font-semibold flex items-center gap-2">
-            <Camera className="w-4 h-4 text-[#FFD600]" />
+            <Camera className="w-5 h-5 text-brand-yellow" />
             Take a Selfie
           </h2>
           <button
-            onClick={() => {
-              if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-              onClose();
-            }}
-            className="p-1.5 hover:bg-white/10 rounded-full text-white/70 transition-colors"
+            onClick={handleClose}
+            className="p-1.5 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-brand-yellow"
+            aria-label="Close camera dialog"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Camera View */}
-        <div className="relative bg-black aspect-video flex items-center justify-center">
+        <div className="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
           {error ? (
             <div className="text-center px-6">
               <Camera className="w-12 h-12 text-gray-600 mx-auto mb-3" />
               <p className="text-gray-400 text-sm">{error}</p>
             </div>
           ) : preview ? (
-            <img src={preview} alt="Captured" className="w-full h-full object-cover" />
+            <img src={preview} alt="Captured preview" className="w-full h-full object-cover" />
           ) : (
             <>
               {starting && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
-                  <div className="w-8 h-8 border-2 border-[#FFD600] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-2 border-brand-yellow border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
               <video
@@ -147,10 +182,10 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
                 muted
                 className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
               />
-              {/* Selfie guide oval */}
+              {/* Subtle framing guide oval */}
               {!starting && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-40 h-52 rounded-full border-2 border-[#FFD600]/60 border-dashed" />
+                  <div className="w-44 h-56 rounded-[50%] border-1.5 border-brand-yellow/30 bg-transparent" />
                 </div>
               )}
             </>
@@ -161,42 +196,42 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
         <canvas ref={canvasRef} className="hidden" />
 
         {/* Controls */}
-        <div className="px-4 py-4 flex items-center justify-center gap-4">
+        <div className="px-6 py-5 flex items-center justify-center gap-6 bg-surface-dark">
           {!preview ? (
             <>
-              {/* Flip camera */}
               <button
                 onClick={handleFlip}
                 disabled={starting || !!error}
-                className="w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-40 transition-colors"
+                className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white disabled:opacity-40 transition-colors focus-visible:ring-2 focus-visible:ring-brand-yellow"
                 title="Flip camera"
+                aria-label="Flip camera"
               >
                 <RotateCcw className="w-5 h-5" />
               </button>
 
-              {/* Capture shutter */}
               <button
                 onClick={handleCapture}
                 disabled={starting || !!error}
-                className="w-16 h-16 rounded-full bg-white disabled:opacity-40 hover:bg-gray-100 transition-colors flex items-center justify-center shadow-lg"
+                className="w-20 h-20 rounded-full bg-white hover:bg-brand-yellow disabled:opacity-40 transition-all duration-300 flex items-center justify-center shadow-lg active:scale-95 group focus-visible:ring-2 focus-visible:ring-brand-yellow"
                 title="Take photo"
+                aria-label="Capture photo"
               >
-                <div className="w-12 h-12 rounded-full border-4 border-gray-400" />
+                <div className="w-16 h-16 rounded-full border-4 border-slate-950/20 group-hover:border-slate-950/40 transition-colors" />
               </button>
 
-              <div className="w-11 h-11" /> {/* spacer */}
+              <div className="w-12 h-12" /> {/* spacer */}
             </>
           ) : (
             <>
               <button
                 onClick={handleRetake}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-brand-yellow"
               >
                 <RotateCcw className="w-4 h-4" /> Retake
               </button>
               <button
                 onClick={handleUsePhoto}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FFD600] hover:bg-[#E6C200] text-black text-sm font-semibold transition-colors"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-yellow hover:bg-brand-yellow-hover text-bg-dark text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-brand-yellow"
               >
                 <Check className="w-4 h-4" /> Use Photo
               </button>

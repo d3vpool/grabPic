@@ -28,11 +28,17 @@ export const SignIn: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8">
+    <div className="min-h-screen bg-bg-dark flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background glow effects */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[20%] left-[20%] w-[350px] h-[350px] rounded-full bg-brand-yellow/5 blur-[90px]" />
+        <div className="absolute bottom-[20%] right-[20%] w-[300px] h-[300px] rounded-full bg-indigo-500/5 blur-[90px]" />
+      </div>
+
+      <Card className="w-full max-w-md p-8 md:p-10 bg-surface-dark/20 border-white/5 relative z-10 animate-[fade-in_0.3s_ease-out]">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-black mb-2">Welcome Back</h1>
-          <p className="text-gray-500">Sign in to manage your events</p>
+          <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">Welcome Back</h1>
+          <p className="text-gray-400 text-sm">Sign in to manage your events</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
@@ -52,14 +58,14 @@ export const SignIn: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <Button type="submit" className="w-full" isLoading={loading}>
+          <Button type="submit" className="w-full py-3.5 text-base mt-2" isLoading={loading}>
             Sign In
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-gray-600 text-sm">
+        <p className="mt-8 text-center text-gray-400 text-sm">
           Don't have an account?{' '}
-          <Link to="/signup" className="text-[#FFD600] font-semibold hover:underline">
+          <Link to="/signup" className="text-brand-yellow font-semibold hover:underline focus-visible:ring-2 focus-visible:ring-brand-yellow focus-visible:outline-none rounded">
             Sign up
           </Link>
         </p>

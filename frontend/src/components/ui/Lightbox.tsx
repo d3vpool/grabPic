@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface LightboxProps {
@@ -9,15 +9,37 @@ interface LightboxProps {
 }
 
 export const Lightbox: React.FC<LightboxProps> = ({ images, currentIndex, onClose, onNavigate }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
     if (e.key === 'ArrowLeft') onNavigate(currentIndex > 0 ? currentIndex - 1 : images.length - 1);
     if (e.key === 'ArrowRight') onNavigate(currentIndex < images.length - 1 ? currentIndex + 1 : 0);
+    
+    // Trap focus in dialog
+    if (e.key === 'Tab' && containerRef.current) {
+      const focusableElements = containerRef.current.querySelectorAll(
+        'button, [tabindex]:not([tabindex="-1"])'
+      );
+      const first = focusableElements[0] as HTMLElement;
+      const last = focusableElements[focusableElements.length - 1] as HTMLElement;
+      if (e.shiftKey && document.activeElement === first) {
+        last.focus();
+        e.preventDefault();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        first.focus();
+        e.preventDefault();
+      }
+    }
   }, [currentIndex, images.length, onClose, onNavigate]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     window.addEventListener('keydown', handleKeyDown);
+    if (closeButtonRef.current) {
+      closeButtonRef.current.focus();
+    }
     return () => {
       document.body.style.overflow = 'auto';
       window.removeEventListener('keydown', handleKeyDown);
@@ -27,11 +49,19 @@ export const Lightbox: React.FC<LightboxProps> = ({ images, currentIndex, onClos
   if (!images || images.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+    <div
+      ref={containerRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md transition-all duration-300 animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Photo Lightbox"
+    >
       {/* Close button */}
       <button 
+        ref={closeButtonRef}
         onClick={onClose}
-        className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+        className="absolute top-6 right-6 p-3 bg-white/5 hover:bg-white/15 rounded-full text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-yellow focus-visible:outline-none"
+        aria-label="Close Lightbox"
       >
         <X className="w-6 h-6" />
       </button>
@@ -39,19 +69,22 @@ export const Lightbox: React.FC<LightboxProps> = ({ images, currentIndex, onClos
       {/* Navigation Left */}
       <button 
         onClick={() => onNavigate(currentIndex > 0 ? currentIndex - 1 : images.length - 1)}
-        className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+        className="absolute left-4 p-4 bg-white/5 hover:bg-white/15 rounded-full text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-yellow focus-visible:outline-none active:scale-95"
+        aria-label="Previous photo"
+        aria-keyshortcuts="ArrowLeft"
       >
         <ChevronLeft className="w-8 h-8" />
       </button>
 
-      {/* Main Image */}
-      <div className="max-w-[85vw] max-h-[85vh] relative flex items-center justify-center">
+      {/* Main Image Container */}
+      <div className="max-w-[85vw] max-h-[85vh] relative flex flex-col items-center justify-center">
         <img 
           src={images[currentIndex].url} 
-          alt={`Preview ${currentIndex + 1}`} 
-          className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+          alt={`Preview image ${currentIndex + 1} of ${images.length}`} 
+          className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl transition-all duration-300 animate-[fade-in_0.3s_ease-out]"
+          key={images[currentIndex].id}
         />
-        <div className="absolute -bottom-10 text-white/70 text-sm">
+        <div className="mt-4 text-white/70 text-sm font-semibold tracking-wider bg-black/50 px-3 py-1 rounded-full border border-white/5">
           {currentIndex + 1} / {images.length}
         </div>
       </div>
@@ -59,7 +92,9 @@ export const Lightbox: React.FC<LightboxProps> = ({ images, currentIndex, onClos
       {/* Navigation Right */}
       <button 
         onClick={() => onNavigate(currentIndex < images.length - 1 ? currentIndex + 1 : 0)}
-        className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+        className="absolute right-4 p-4 bg-white/5 hover:bg-white/15 rounded-full text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-yellow focus-visible:outline-none active:scale-95"
+        aria-label="Next photo"
+        aria-keyshortcuts="ArrowRight"
       >
         <ChevronRight className="w-8 h-8" />
       </button>

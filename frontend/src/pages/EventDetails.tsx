@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { eventService } from '@services/event.service';
 import type { EventDetails as EventDetailsType, SearchMatch } from '../types';
 import { Card } from '@components/ui/Card';
 import { Loader } from '@components/ui/Loader';
 import { Button } from '@components/ui/Button';
+import { Input } from '@components/ui/Input';
 import { FileUploadBox } from '@components/ui/FileUploadBox';
 import { ImageGrid } from '@components/ui/ImageGrid';
 import { FaceHighlightImage } from '@components/ui/FaceHighlightImage';
@@ -49,6 +50,8 @@ export const EventDetails: React.FC = () => {
   const [toggling, setToggling] = useState(false);
 
   const { showToast } = useToast();
+  const editModalRef = useRef<HTMLDivElement>(null);
+  const deleteModalRef = useRef<HTMLDivElement>(null);
 
   const fetchEventDetails = async () => {
     if (!eventId) return;
@@ -65,6 +68,18 @@ export const EventDetails: React.FC = () => {
   useEffect(() => {
     fetchEventDetails();
   }, [eventId]);
+
+  // Handle ESC close for modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setEditOpen(false);
+        setDeleteConfirm(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleUploadImages = async (files: File[]) => {
     if (!eventId) return;
@@ -103,7 +118,6 @@ export const EventDetails: React.FC = () => {
     setDeletingImageId(imageId);
     try {
       await eventService.deleteImage(eventId, imageId);
-      // Optimistically remove from state
       setEvent(prev =>
         prev ? { ...prev, images: prev.images.filter(img => img.id !== imageId), imageCount: prev.imageCount - 1 } : prev
       );
@@ -177,64 +191,95 @@ export const EventDetails: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="py-20 flex justify-center"><Loader size="lg" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        <div className="h-80 bg-white/5 rounded-3xl shimmer-bg" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1 space-y-6">
+            <div className="h-64 bg-white/5 rounded-2xl shimmer-bg" />
+            <div className="h-64 bg-white/5 rounded-2xl shimmer-bg" />
+          </div>
+          <div className="lg:col-span-2 h-96 bg-white/5 rounded-2xl shimmer-bg" />
+        </div>
+      </div>
+    );
+  }
+
   if (!event) return <div className="text-center py-20 text-red-500">Event not found</div>;
 
   return (
-    <div className="space-y-8">
-      {/* Cover Image */}
-      {event.coverImageUrl && (
-        <div className="w-full h-64 md:h-80 rounded-2xl overflow-hidden bg-gray-100 shadow-sm">
+    <div className="space-y-8 animate-[fade-in_0.35s_ease-out]">
+      {/* Cover Header */}
+      <div className="relative w-full h-[320px] md:h-[400px] rounded-3xl overflow-hidden border border-white/5 shadow-2xl flex flex-col justify-end p-6 md:p-10 bg-slate-950">
+        {event.coverImageUrl ? (
           <img
             src={event.coverImageUrl}
             alt={event.title}
-            className="w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover select-none"
           />
-        </div>
-      )}
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/20 to-slate-950" />
+        )}
+        
+        {/* Contrast Overlay Gradient: Works for bright and dark photos */}
+        <div className="absolute inset-0 bg-gradient-to-t from-bg-dark via-bg-dark/60 to-transparent pointer-events-none" />
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
-        <div className="flex-1">
-          <h1 className="text-4xl font-bold text-black mb-2">{event.title}</h1>
-          {event.description && <p className="text-gray-500 max-w-2xl">{event.description}</p>}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-          <button
-            onClick={handleToggleVisibility}
-            disabled={toggling}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all duration-200 ${
-              event.isPublic
-                ? 'border-green-500 text-green-600 bg-green-50 hover:bg-green-100'
-                : 'border-gray-300 text-gray-600 bg-gray-50 hover:bg-gray-100'
-            }`}
-          >
-            {toggling ? <Loader size="sm" /> : event.isPublic ? (
-              <><Globe className="w-4 h-4" /> Public</>
-            ) : (
-              <><Lock className="w-4 h-4" /> Private</>
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-6 w-full">
+          <div className="flex-1">
+            <h1 className="text-3xl sm:text-5xl font-extrabold text-white mb-3 tracking-tight leading-tight">
+              {event.title}
+            </h1>
+            {event.description && (
+              <p className="text-gray-300 text-sm sm:text-base max-w-2xl font-medium leading-relaxed">
+                {event.description}
+              </p>
             )}
-          </button>
+          </div>
 
-          <Button onClick={copyShareLink} variant="secondary" className="flex items-center gap-2">
-            <Share2 className="w-4 h-4" /> Share Link
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0 w-full md:w-auto">
+            <button
+              onClick={handleToggleVisibility}
+              disabled={toggling}
+              className={`flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold border transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-yellow focus-visible:outline-none cursor-pointer ${
+                event.isPublic
+                  ? 'border-green-500/20 text-green-400 bg-green-500/10 hover:bg-green-500/20'
+                  : 'border-white/10 text-gray-300 bg-white/5 hover:bg-white/10'
+              }`}
+              aria-label={event.isPublic ? "Toggle to Private" : "Toggle to Public"}
+            >
+              {toggling ? (
+                <Loader size="sm" />
+              ) : event.isPublic ? (
+                <>
+                  <Globe className="w-4 h-4" /> Public
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" /> Private
+                </>
+              )}
+            </button>
 
-          <button
-            onClick={openEdit}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
-          >
-            <Pencil className="w-4 h-4" /> Edit
-          </button>
+            <Button onClick={copyShareLink} variant="secondary" className="flex-1 md:flex-initial">
+              <Share2 className="w-4 h-4" /> Share Link
+            </Button>
 
-          <button
-            onClick={() => setDeleteConfirm(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" /> Delete
-          </button>
+            <button
+              onClick={openEdit}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold bg-white/5 hover:bg-white/10 text-white transition-colors border border-white/5 focus-visible:ring-2 focus-visible:ring-brand-yellow cursor-pointer"
+            >
+              <Pencil className="w-4 h-4" /> Edit
+            </button>
+
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors focus-visible:ring-2 focus-visible:ring-red-500 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" /> Delete
+            </button>
+          </div>
         </div>
       </div>
 
@@ -242,22 +287,24 @@ export const EventDetails: React.FC = () => {
         {/* Left Column: Search & Upload */}
         <div className="lg:col-span-1 space-y-8">
           {/* Find My Photos */}
-          <Card className="p-6">
+          <Card className="p-6 bg-surface-dark/20">
             <div className="flex items-center gap-2 mb-4">
-              <Camera className="w-6 h-6 text-[#FFD600]" />
-              <h2 className="text-xl font-bold">Find My Photos</h2>
+              <Camera className="w-6 h-6 text-brand-yellow" />
+              <h2 className="text-xl font-bold text-white tracking-tight">Find My Photos</h2>
             </div>
-            <p className="text-sm text-gray-500 mb-4">Upload or take a selfie to find your photos in this event.</p>
+            <p className="text-sm text-gray-400 mb-5 leading-relaxed">
+              Upload or take a selfie to find your photos in this event.
+            </p>
 
             <div className="space-y-4">
               {/* Selfie preview */}
               {selfieFile && !searchMatches ? (
-                <div className="relative rounded-xl overflow-hidden bg-gray-100 h-48 border border-gray-200">
-                  <img src={URL.createObjectURL(selfieFile)} alt="Selfie" className="w-full h-full object-cover" />
+                <div className="relative rounded-xl overflow-hidden bg-slate-950 h-48 border border-white/10">
+                  <img src={URL.createObjectURL(selfieFile)} alt="Selfie preview" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => setSelfieFile(null)}
-                    className="absolute top-2 right-2 bg-white text-red-500 px-3 py-1 rounded-full text-sm font-medium shadow"
+                    className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg transition-colors cursor-pointer"
                   >
                     Remove
                   </button>
@@ -265,10 +312,9 @@ export const EventDetails: React.FC = () => {
               ) : !searchMatches && (
                 <div className="space-y-3">
                   <FileUploadBox onFilesSelected={(files) => setSelfieFile(files[0])} accept="image/*" />
-                  {/* Camera option */}
                   <button
                     onClick={() => setCameraOpen(true)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#FFD600] hover:bg-[#FFD600]/5 text-gray-500 hover:text-gray-700 text-sm font-medium transition-all duration-200"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 hover:border-brand-yellow/50 bg-white/5 hover:bg-white/8 text-gray-300 hover:text-white text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-yellow cursor-pointer"
                   >
                     <Camera className="w-4 h-4" />
                     Click a Selfie
@@ -286,11 +332,11 @@ export const EventDetails: React.FC = () => {
               {searchMatches && searchMatches.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-green-600">
+                    <h3 className="font-bold text-green-400 text-sm">
                       {searchMatches.length} photo{searchMatches.length > 1 ? 's' : ''} found!
                     </h3>
                     {searchMatches.length > 1 && (
-                      <span className="text-xs text-gray-400">{matchIndex + 1} / {searchMatches.length}</span>
+                      <span className="text-xs text-gray-400 font-semibold">{matchIndex + 1} / {searchMatches.length}</span>
                     )}
                   </div>
                   <FaceHighlightImage
@@ -301,13 +347,13 @@ export const EventDetails: React.FC = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setMatchIndex(i => (i > 0 ? i - 1 : searchMatches.length - 1))}
-                        className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-brand-yellow cursor-pointer"
                       >
                         <ChevronLeft className="w-4 h-4" /> Prev
                       </button>
                       <button
                         onClick={() => setMatchIndex(i => (i < searchMatches.length - 1 ? i + 1 : 0))}
-                        className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-brand-yellow cursor-pointer"
                       >
                         Next <ChevronRight className="w-4 h-4" />
                       </button>
@@ -321,7 +367,9 @@ export const EventDetails: React.FC = () => {
 
               {searchMatches && searchMatches.length === 0 && (
                 <div className="space-y-4">
-                  <p className="text-center text-gray-500 text-sm py-4 bg-gray-50 rounded-xl">No photos of you were found.</p>
+                  <p className="text-center text-gray-400 text-sm py-6 bg-white/5 rounded-xl border border-white/5">
+                    No photos of you were found.
+                  </p>
                   <Button variant="secondary" className="w-full" onClick={() => { setSearchMatches(null); setSelfieFile(null); }}>
                     Try Again
                   </Button>
@@ -331,15 +379,15 @@ export const EventDetails: React.FC = () => {
           </Card>
 
           {/* Upload Images */}
-          <Card className="p-6">
+          <Card className="p-6 bg-surface-dark/20">
             <div className="flex items-center gap-2 mb-4">
-              <Upload className="w-6 h-6 text-[#FFD600]" />
-              <h2 className="text-xl font-bold">Upload Images</h2>
+              <Upload className="w-6 h-6 text-brand-yellow" />
+              <h2 className="text-xl font-bold text-white tracking-tight">Upload Images</h2>
             </div>
             {uploading ? (
-              <div className="py-8 flex flex-col items-center justify-center">
+              <div className="py-8 flex flex-col items-center justify-center gap-4">
                 <Loader size="md" />
-                <p className="mt-4 text-sm text-gray-500">Uploading images...</p>
+                <p className="text-sm text-gray-400 font-medium">Uploading images...</p>
               </div>
             ) : (
               <FileUploadBox multiple onFilesSelected={handleUploadImages} accept="image/*" />
@@ -349,38 +397,45 @@ export const EventDetails: React.FC = () => {
 
         {/* Right Column: Gallery */}
         <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-2xl font-bold border-b pb-2">Gallery ({event.images?.length || 0})</h2>
+          <h2 className="text-2xl font-bold text-white tracking-tight border-b border-white/5 pb-3">
+            Gallery ({event.images?.length || 0})
+          </h2>
           {event.images && event.images.length > 0 ? (
             <ImageGrid>
               {event.images.map((img, index) => (
-                <div key={img.id} className="relative group aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer">
+                <div
+                  key={img.id}
+                  className="relative group aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-white/5 cursor-pointer"
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: '250px' }}
+                >
                   <img
                     src={img.url}
-                    alt={`Event image ${index + 1}`}
+                    alt={`Event gallery item ${index + 1}`}
                     loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     onClick={() => setLightboxIndex(index)}
                   />
                   {/* Delete overlay */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 pointer-events-none" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 pointer-events-none" />
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteImage(img.id); }}
                     disabled={deletingImageId === img.id}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full shadow-lg disabled:opacity-60"
+                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg disabled:opacity-60 focus-visible:opacity-100 cursor-pointer"
                     title="Delete image"
+                    aria-label="Delete image"
                   >
                     {deletingImageId === img.id ? (
                       <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     )}
                   </button>
                 </div>
               ))}
             </ImageGrid>
           ) : (
-            <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-              <p className="text-gray-500">No images uploaded yet.</p>
+            <div className="text-center py-24 bg-white/[0.01] rounded-3xl border border-dashed border-white/10">
+              <p className="text-gray-400">No images uploaded yet.</p>
             </div>
           )}
         </div>
@@ -406,31 +461,41 @@ export const EventDetails: React.FC = () => {
 
       {/* Edit Modal */}
       {editOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Edit Event Details"
+          ref={editModalRef}
+        >
+          <div className="bg-surface-dark border border-white/10 rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold">Edit Event</h2>
-              <button onClick={() => setEditOpen(false)} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                <X className="w-5 h-5 text-gray-500" />
+              <h2 className="text-xl font-bold text-white">Edit Event</h2>
+              <button 
+                onClick={() => setEditOpen(false)} 
+                className="p-1.5 hover:bg-white/5 rounded-full transition-colors text-gray-400 hover:text-white cursor-pointer"
+                aria-label="Close edit dialog"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-              <input
+            <div className="space-y-4">
+              <Input
+                label="Title"
                 type="text"
                 value={editTitle}
-                onChange={e => setEditTitle(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFD600]"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditTitle(e.target.value)}
+                required
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                value={editDescription}
-                onChange={e => setEditDescription(e.target.value)}
-                rows={3}
-                className="w-full border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFD600] resize-none"
-              />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-300">Description</label>
+                <textarea
+                  value={editDescription}
+                  onChange={e => setEditDescription(e.target.value)}
+                  rows={3}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-brand-yellow/50 resize-none"
+                />
+              </div>
             </div>
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" className="flex-1" onClick={() => setEditOpen(false)}>Cancel</Button>
@@ -442,19 +507,27 @@ export const EventDetails: React.FC = () => {
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4 text-center">
-            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-              <Trash2 className="w-7 h-7 text-red-500" />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm Event Deletion"
+          ref={deleteModalRef}
+        >
+          <div className="bg-surface-dark border border-white/10 rounded-3xl shadow-2xl w-full max-w-sm p-6 sm:p-8 space-y-5 text-center">
+            <div className="w-14 h-14 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto">
+              <Trash2 className="w-7 h-7 text-red-400" />
             </div>
-            <h2 className="text-xl font-bold">Delete Event?</h2>
-            <p className="text-gray-500 text-sm">This will permanently delete the event and all its photos. This action cannot be undone.</p>
-            <div className="flex gap-3">
+            <h2 className="text-xl font-bold text-white">Delete Event?</h2>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              This will permanently delete the event and all its photos. This action cannot be undone.
+            </p>
+            <div className="flex gap-3 pt-2">
               <Button variant="secondary" className="flex-1" onClick={() => setDeleteConfirm(false)}>Cancel</Button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-xl transition-colors disabled:opacity-60"
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-4 rounded-xl transition-all duration-200 disabled:opacity-60 active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-red-500"
               >
                 {deleting ? 'Deleting...' : 'Yes, Delete'}
               </button>

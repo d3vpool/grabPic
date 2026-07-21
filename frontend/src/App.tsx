@@ -26,8 +26,9 @@ function App() {
     <ToastProvider>
       <BrowserRouter>
         <Routes>
-          {/* Landing Page */}
-          <Route path="/home" element={<Home />} />
+          {/* Landing Page — always accessible */}
+          <Route path="/" element={token ? <Navigate to="/events" replace /> : <Home />} />
+          <Route path="/home" element={token ? <Navigate to="/events" replace /> : <Home />} />
 
           {/* Public Auth Routes */}
           <Route path="/login" element={token ? <Navigate to="/events" replace /> : <SignIn />} />
@@ -35,9 +36,6 @@ function App() {
 
           {/* Public Event Route */}
           <Route path="/share/:shareToken" element={<PublicEvent />} />
-
-          {/* Root Redirect */}
-          <Route path="/" element={<Navigate to={token ? "/events" : "/login"} replace />} />
 
           {/* Private Routes */}
           <Route element={<PrivateRoute />}>

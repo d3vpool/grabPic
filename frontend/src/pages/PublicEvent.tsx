@@ -6,9 +6,8 @@ import { Card } from '@components/ui/Card';
 import { Button } from '@components/ui/Button';
 import { FileUploadBox } from '@components/ui/FileUploadBox';
 import { FaceHighlightImage } from '@components/ui/FaceHighlightImage';
-import { Loader } from '@components/ui/Loader';
 import { useToast } from '../contexts/ToastContext';
-import { Camera, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { CameraCapture } from '@components/ui/CameraCapture';
 
 interface PublicEventData {
@@ -70,174 +69,223 @@ export const PublicEvent: React.FC = () => {
     }
   };
 
+  if (eventLoading) {
+    return (
+      <div className="min-h-screen bg-bg-dark text-slate-100 flex flex-col">
+        {/* Header */}
+        <div className="sticky top-0 z-40 glass-nav shadow-lg h-20 flex items-center px-4 sm:px-6 lg:px-8 border-b border-white/5">
+          <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
+            <span className="text-2xl font-extrabold text-white tracking-tight">
+              Spot<span className="text-brand-yellow">Me</span>
+            </span>
+            <Link to="/login" className="text-sm font-semibold text-gray-300 hover:text-white transition-colors">
+              Login
+            </Link>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 animate-pulse w-full">
+          <div className="h-80 bg-white/5 rounded-3xl shimmer-bg" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1 h-64 bg-white/5 rounded-2xl shimmer-bg" />
+            <div className="lg:col-span-2 h-96 bg-white/5 rounded-2xl shimmer-bg" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-bg-dark text-slate-100 flex flex-col font-sans">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <span className="text-2xl font-bold text-black tracking-tight">
-            Spot<span className="text-[#FFD600]">Me</span>
+      <div className="sticky top-0 z-40 glass-nav shadow-lg h-20 flex items-center px-4 sm:px-6 lg:px-8 border-b border-white/5">
+        <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
+          <span className="text-2xl font-extrabold text-white tracking-tight">
+            Spot<span className="text-brand-yellow">Me</span>
           </span>
-          <Link to="/login" className="text-sm font-medium text-gray-500 hover:text-black transition-colors">
+          <Link to="/login" className="text-sm font-semibold text-gray-300 hover:text-white transition-colors">
             Login
           </Link>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-        {/* Event Info */}
-        {eventLoading ? (
-          <div className="flex justify-center py-8"><Loader size="lg" /></div>
-        ) : eventError ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-red-100 shadow-sm">
-            <p className="text-red-500 font-medium">{eventError}</p>
+      <div className="flex-grow max-w-7xl mx-auto px-4 py-8 space-y-8 w-full animate-[fade-in_0.35s_ease-out]">
+        {eventError ? (
+          <div className="text-center py-20 bg-red-500/5 border border-red-500/10 rounded-2xl max-w-md mx-auto">
+            <p className="text-red-400 font-semibold mb-2">{eventError}</p>
+            <p className="text-gray-500 text-sm">Please check the sharing URL and try again.</p>
           </div>
         ) : eventData ? (
           <>
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-black mb-2">{eventData.title}</h1>
-              {eventData.description && (
-                <p className="text-gray-500 max-w-xl mx-auto">{eventData.description}</p>
-              )}
+            {/* Cover Header */}
+            <div className="relative w-full h-[280px] md:h-[360px] rounded-3xl overflow-hidden border border-white/5 shadow-2xl flex flex-col justify-end p-6 md:p-10 bg-slate-950">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/20 to-slate-950" />
+              
+              {/* Contrast Overlay Gradient: Works for bright and dark photos */}
+              <div className="absolute inset-0 bg-gradient-to-t from-bg-dark via-bg-dark/60 to-transparent pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col justify-end w-full">
+                <h1 className="text-3xl sm:text-5xl font-extrabold text-white mb-2 tracking-tight leading-tight">
+                  {eventData.title}
+                </h1>
+                {eventData.description && (
+                  <p className="text-gray-300 text-sm sm:text-base max-w-2xl font-medium leading-relaxed">
+                    {eventData.description}
+                  </p>
+                )}
+              </div>
             </div>
 
-            {/* Find My Photos Card */}
-            <Card className="p-8 shadow-md max-w-xl mx-auto">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-[#FFD600]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Camera className="w-8 h-8 text-[#FFD600]" />
-                </div>
-                <h2 className="text-2xl font-bold text-black mb-1">Find Your Photos</h2>
-                <p className="text-gray-500 text-sm">Upload a selfie to instantly find all your photos from this event.</p>
-              </div>
-
-              <div className="space-y-6">
-                {selfieFile && !searchMatches ? (
-                  <div className="relative rounded-xl overflow-hidden bg-gray-100 h-64 border border-gray-200">
-                    <img src={URL.createObjectURL(selfieFile)} alt="Selfie" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setSelfieFile(null)}
-                      className="absolute top-4 right-4 bg-white text-red-500 px-4 py-2 rounded-full text-sm font-medium shadow hover:bg-red-50"
-                    >
-                      Remove &amp; Reselect
-                    </button>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column: Find My Photos */}
+              <div className="lg:col-span-1">
+                <Card className="p-6 bg-surface-dark/20 border-white/5 sticky top-24">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Camera className="w-6 h-6 text-brand-yellow" />
+                    <h2 className="text-xl font-bold text-white tracking-tight">Find My Photos</h2>
                   </div>
-                ) : !searchMatches && (
-                  <div className="space-y-3">
-                    <FileUploadBox onFilesSelected={(files) => setSelfieFile(files[0])} accept="image/*" />
-                    <button
-                      onClick={() => setCameraOpen(true)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#FFD600] hover:bg-[#FFD600]/5 text-gray-500 hover:text-gray-700 text-sm font-medium transition-all duration-200"
-                    >
-                      <Camera className="w-4 h-4" />
-                      Click a Selfie
-                    </button>
-                  </div>
-                )}
+                  <p className="text-sm text-gray-400 mb-5 leading-relaxed">
+                    Upload or take a selfie to instantly find all photos you appear in.
+                  </p>
 
-                {!searchMatches && selfieFile && (
-                  <Button className="w-full text-lg py-3" onClick={handleSearch} isLoading={searching}>
-                    Search for my face
-                  </Button>
-                )}
-
-                {searchMatches && searchMatches.length > 0 && (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-green-600">
-                        {searchMatches.length} photo{searchMatches.length > 1 ? 's' : ''} found!
-                      </h3>
-                      {searchMatches.length > 1 && (
-                        <span className="text-xs text-gray-400">{matchIndex + 1} / {searchMatches.length}</span>
-                      )}
-                    </div>
-                    <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                      <FaceHighlightImage
-                        imageUrl={searchMatches[matchIndex].imageUrl}
-                        faces={searchMatches[matchIndex].faces}
-                      />
-                    </div>
-                    {searchMatches.length > 1 && (
-                      <div className="flex gap-2">
+                    {/* Selfie preview */}
+                    {selfieFile && !searchMatches ? (
+                      <div className="relative rounded-xl overflow-hidden bg-slate-950 h-48 border border-white/10">
+                        <img src={URL.createObjectURL(selfieFile)} alt="Selfie preview" className="w-full h-full object-cover" />
                         <button
-                          onClick={() => setMatchIndex(i => (i > 0 ? i - 1 : searchMatches.length - 1))}
-                          className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium transition-colors"
+                          type="button"
+                          onClick={() => setSelfieFile(null)}
+                          className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg transition-colors cursor-pointer"
                         >
-                          <ChevronLeft className="w-4 h-4" /> Prev
+                          Remove
                         </button>
+                      </div>
+                    ) : !searchMatches && (
+                      <div className="space-y-3">
+                        <FileUploadBox onFilesSelected={(files) => setSelfieFile(files[0])} accept="image/*" />
                         <button
-                          onClick={() => setMatchIndex(i => (i < searchMatches.length - 1 ? i + 1 : 0))}
-                          className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium transition-colors"
+                          onClick={() => setCameraOpen(true)}
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 hover:border-brand-yellow/50 bg-white/5 hover:bg-white/8 text-gray-300 hover:text-white text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand-yellow cursor-pointer"
                         >
-                          Next <ChevronRight className="w-4 h-4" />
+                          <Camera className="w-4 h-4" />
+                          Click a Selfie
                         </button>
                       </div>
                     )}
-                    <Button variant="secondary" className="w-full py-3" onClick={() => { setSearchMatches(null); setSelfieFile(null); setMatchIndex(0); }}>
-                      Search for another face
-                    </Button>
-                  </div>
-                )}
 
-                {searchMatches && searchMatches.length === 0 && (
-                  <div className="space-y-4">
-                    <p className="text-center text-gray-500 text-sm py-4 bg-gray-50 rounded-xl">No photos of you were found in this event.</p>
-                    <Button variant="secondary" className="w-full py-3" onClick={() => { setSearchMatches(null); setSelfieFile(null); }}>
-                      Try Again
-                    </Button>
+                    {!searchMatches && selfieFile && (
+                      <Button className="w-full text-base py-3" onClick={handleSearch} isLoading={searching}>
+                        Search for my face
+                      </Button>
+                    )}
+
+                    {/* Match results */}
+                    {searchMatches && searchMatches.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-green-400 text-sm">
+                            {searchMatches.length} photo{searchMatches.length > 1 ? 's' : ''} found!
+                          </h3>
+                          {searchMatches.length > 1 && (
+                            <span className="text-xs text-gray-400 font-semibold">{matchIndex + 1} / {searchMatches.length}</span>
+                          )}
+                        </div>
+                        <div className="border border-white/10 rounded-2xl overflow-hidden shadow-lg bg-slate-950 flex justify-center">
+                          <FaceHighlightImage
+                            imageUrl={searchMatches[matchIndex].imageUrl}
+                            faces={searchMatches[matchIndex].faces}
+                          />
+                        </div>
+                        {searchMatches.length > 1 && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setMatchIndex(i => (i > 0 ? i - 1 : searchMatches.length - 1))}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-brand-yellow cursor-pointer"
+                            >
+                              <ChevronLeft className="w-4 h-4" /> Prev
+                            </button>
+                            <button
+                              onClick={() => setMatchIndex(i => (i < searchMatches.length - 1 ? i + 1 : 0))}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-brand-yellow cursor-pointer"
+                            >
+                              Next <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                        <Button variant="secondary" className="w-full" onClick={() => { setSearchMatches(null); setSelfieFile(null); setMatchIndex(0); }}>
+                          Search Again
+                        </Button>
+                      </div>
+                    )}
+
+                    {searchMatches && searchMatches.length === 0 && (
+                      <div className="space-y-4">
+                        <p className="text-center text-gray-400 text-sm py-6 bg-white/5 rounded-xl border border-white/5">
+                          No photos of you were found.
+                        </p>
+                        <Button variant="secondary" className="w-full" onClick={() => { setSearchMatches(null); setSelfieFile(null); }}>
+                          Try Again
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
+                </Card>
               </div>
-            </Card>
 
-            {/* Event Gallery */}
-            {eventData.images && eventData.images.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold text-black border-b pb-2">
-                  Event Gallery ({eventData.images.length})
+              {/* Right Column: Gallery */}
+              <div className="lg:col-span-2 space-y-6">
+                <h2 className="text-2xl font-bold text-white tracking-tight border-b border-white/5 pb-3">
+                  Event Gallery ({eventData.images?.length || 0})
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {eventData.images.map((img, index) => (
-                    <div
-                      key={index}
-                      className="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => setGalleryIndex(index)}
-                    >
-                      <img
-                        src={img.imageUrl}
-                        alt={`Event photo ${index + 1}`}
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                {eventData.images && eventData.images.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {eventData.images.map((img, index) => (
+                      <div
+                        key={index}
+                        className="relative group aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-white/5 cursor-pointer"
+                        style={{ contentVisibility: 'auto', containIntrinsicSize: '200px' }}
+                        onClick={() => setGalleryIndex(index)}
+                      >
+                        <img
+                          src={img.imageUrl}
+                          alt={`Event gallery item ${index + 1}`}
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 pointer-events-none" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-24 bg-white/[0.01] rounded-3xl border border-dashed border-white/10">
+                    <p className="text-gray-400">No photos have been uploaded for this event yet.</p>
+                  </div>
+                )}
               </div>
-            )}
-
-            {eventData.images && eventData.images.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200">
-                <ImageIcon className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-400">No photos have been uploaded for this event yet.</p>
-              </div>
-            )}
+            </div>
           </>
         ) : null}
       </div>
 
       {/* Gallery Lightbox */}
       {galleryIndex !== null && eventData?.images && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Gallery lightbox"
+        >
           <button
             onClick={() => setGalleryIndex(null)}
-            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-yellow"
+            aria-label="Close Lightbox"
           >
-            ✕
+            <X className="w-6 h-6" />
           </button>
           <button
             onClick={() => setGalleryIndex(i => (i! > 0 ? i! - 1 : eventData.images.length - 1))}
-            className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+            className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-yellow"
+            aria-label="Previous image"
           >
             <ChevronLeft className="w-8 h-8" />
           </button>
@@ -245,15 +293,16 @@ export const PublicEvent: React.FC = () => {
             <img
               src={eventData.images[galleryIndex].imageUrl}
               alt={`Preview ${galleryIndex + 1}`}
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
             />
-            <div className="absolute -bottom-10 text-white/70 text-sm">
+            <div className="absolute -bottom-10 text-white/70 text-sm font-semibold">
               {galleryIndex + 1} / {eventData.images.length}
             </div>
           </div>
           <button
             onClick={() => setGalleryIndex(i => (i! < eventData.images.length - 1 ? i! + 1 : 0))}
-            className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+            className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-yellow"
+            aria-label="Next image"
           >
             <ChevronRight className="w-8 h-8" />
           </button>

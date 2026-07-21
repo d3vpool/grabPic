@@ -53,14 +53,24 @@ export const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesSelected, m
 
   return (
     <div
-      className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-colors ${
-        isDragActive ? 'border-[#FFD600] bg-[#FFD600]/10' : 'border-gray-300 hover:border-[#FFD600] bg-gray-50'
+      className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-brand-yellow focus-visible:border-transparent ${
+        isDragActive 
+          ? 'border-brand-yellow bg-brand-yellow/10 shadow-[0_0_20px_rgba(255,214,0,0.1)] scale-[1.01]' 
+          : 'border-white/10 hover:border-brand-yellow/50 bg-white/5 hover:bg-white/8'
       }`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onClick={onButtonClick}
+      tabIndex={0}
+      role="button"
+      aria-label="Upload files"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onButtonClick();
+        }
+      }}
     >
       <input
         type="file"
@@ -70,9 +80,9 @@ export const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesSelected, m
         multiple={multiple}
         accept={accept}
       />
-      <UploadCloud className={`w-12 h-12 mb-4 ${isDragActive ? 'text-[#FFD600]' : 'text-gray-400'}`} />
-      <p className="text-gray-600 text-center mb-2">
-        <span className="font-semibold text-black">Click to upload</span> or drag and drop
+      <UploadCloud className={`w-12 h-12 mb-4 transition-all duration-300 ${isDragActive ? 'text-brand-yellow scale-110' : 'text-gray-400'}`} />
+      <p className="text-gray-300 text-center mb-2">
+        <span className="font-semibold text-brand-yellow">Click to upload</span> or drag and drop
       </p>
       <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
     </div>

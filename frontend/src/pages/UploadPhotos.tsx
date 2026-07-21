@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, ChevronDown, X, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Upload, ChevronDown, X, CheckCircle } from 'lucide-react';
 import { Card } from '@components/ui/Card';
 import { Button } from '@components/ui/Button';
 import { FileUploadBox } from '@components/ui/FileUploadBox';
-import { Loader } from '@components/ui/Loader';
 import { useToast } from '../contexts/ToastContext';
 import { eventService } from '@services/event.service';
 import type { Event } from '../types';
@@ -19,7 +18,7 @@ export function UploadPhotos() {
 
   useEffect(() => {
     eventService.getEvents().then((data) => {
-      setEvents(data.events);
+      setEvents(data.events || []);
     }).catch(() => {
       showToast('Failed to load events', 'error');
     });
@@ -28,7 +27,6 @@ export function UploadPhotos() {
   const selectedEvent = events.find((e) => String(e.id) === selectedEventId);
 
   const handleFilesSelected = (incoming: File[]) => {
-    // Merge, deduplicating by name
     setFiles((prev) => {
       const existingNames = new Set(prev.map((f) => f.name));
       const newOnes = incoming.filter((f) => !existingNames.has(f.name));
@@ -62,32 +60,32 @@ export function UploadPhotos() {
   const totalSizeMB = (files.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(1);
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto animate-[fade-in_0.35s_ease-out]">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-black mb-2">Upload Photos</h1>
-        <p className="text-gray-500">
+        <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">Upload Photos</h1>
+        <p className="text-gray-400">
           Select an event and upload photos in bulk. Our AI will process them automatically.
         </p>
       </div>
 
       {uploadStatus === 'done' ? (
         /* Success State */
-        <Card className="p-10 flex flex-col items-center text-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+        <Card className="p-10 flex flex-col items-center text-center gap-5 bg-surface-dark/20 border-white/5 shadow-2xl">
+          <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center shadow-lg animate-bounce">
+            <CheckCircle className="w-8 h-8 text-green-400" />
           </div>
-          <h2 className="text-2xl font-bold text-black">Upload Complete!</h2>
-          <p className="text-gray-500">
-            <span className="font-semibold text-black">{files.length} photo{files.length > 1 ? 's' : ''}</span>{' '}
+          <h2 className="text-2xl font-bold text-white tracking-tight">Upload Complete!</h2>
+          <p className="text-gray-300 max-w-md">
+            <span className="font-semibold text-brand-yellow">{files.length} photo{files.length > 1 ? 's' : ''}</span>{' '}
             uploaded to{' '}
-            <span className="font-semibold text-black">{selectedEvent?.title}</span>.
+            <span className="font-semibold text-white">{selectedEvent?.title}</span>.
           </p>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-400 max-w-sm leading-relaxed">
             Our AI is now processing the images in the background. This may take a minute.
           </p>
-          <div className="flex gap-3 pt-2">
-            <Button variant="secondary" onClick={handleReset}>
+          <div className="flex gap-3 pt-2 w-full max-w-xs">
+            <Button variant="secondary" onClick={handleReset} className="w-full">
               Upload More Photos
             </Button>
           </div>
@@ -95,23 +93,23 @@ export function UploadPhotos() {
       ) : (
         <div className="space-y-6">
           {/* Step 1: Pick Event */}
-          <Card className="p-6">
+          <Card className="p-6 bg-surface-dark/20 border-white/5">
             <div className="flex items-center gap-2 mb-4">
-              <span className="w-6 h-6 rounded-full bg-[#FFD600] text-black text-xs font-bold flex items-center justify-center flex-shrink-0">
+              <span className="w-6 h-6 rounded-full bg-brand-yellow text-bg-dark text-xs font-bold flex items-center justify-center flex-shrink-0">
                 1
               </span>
-              <h2 className="font-semibold text-black">Select Event</h2>
+              <h2 className="font-semibold text-white">Select Event</h2>
             </div>
             <div className="relative">
               <select
                 id="upload-event-select"
                 value={selectedEventId}
                 onChange={(e) => setSelectedEventId(e.target.value)}
-                className="w-full appearance-none px-4 py-3 pr-10 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD600] focus:border-transparent bg-white text-gray-800 transition-all"
+                className="w-full appearance-none px-4 py-3 pr-10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-yellow/50 bg-white/5 text-white transition-all cursor-pointer"
               >
-                <option value="">— Choose an event —</option>
+                <option value="" className="bg-bg-dark text-white">— Choose an event —</option>
                 {events.map((ev) => (
-                  <option key={ev.id} value={String(ev.id)}>
+                  <option key={ev.id} value={String(ev.id)} className="bg-bg-dark text-white">
                     {ev.title}
                   </option>
                 ))}
@@ -121,12 +119,12 @@ export function UploadPhotos() {
           </Card>
 
           {/* Step 2: Upload */}
-          <Card className="p-6">
+          <Card className="p-6 bg-surface-dark/20 border-white/5">
             <div className="flex items-center gap-2 mb-4">
-              <span className="w-6 h-6 rounded-full bg-[#FFD600] text-black text-xs font-bold flex items-center justify-center flex-shrink-0">
+              <span className="w-6 h-6 rounded-full bg-brand-yellow text-bg-dark text-xs font-bold flex items-center justify-center flex-shrink-0">
                 2
               </span>
-              <h2 className="font-semibold text-black">Add Photos</h2>
+              <h2 className="font-semibold text-white">Add Photos</h2>
             </div>
 
             <FileUploadBox
@@ -137,21 +135,21 @@ export function UploadPhotos() {
 
             {/* File List */}
             {files.length > 0 && (
-              <div className="mt-5 space-y-2">
-                <div className="flex justify-between items-center text-sm text-gray-500 mb-2">
+              <div className="mt-6 space-y-3">
+                <div className="flex justify-between items-center text-sm text-gray-400 mb-2">
                   <span>
-                    <span className="font-semibold text-black">{files.length}</span> file
+                    <span className="font-semibold text-white">{files.length}</span> file
                     {files.length > 1 ? 's' : ''} selected
                   </span>
-                  <span>{totalSizeMB} MB total</span>
+                  <span className="font-medium text-gray-300">{totalSizeMB} MB total</span>
                 </div>
-                <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                   {files.map((file) => (
                     <div
                       key={file.name}
-                      className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl border border-gray-100"
+                      className="flex items-center gap-3.5 p-3 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition-colors"
                     >
-                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-950 flex-shrink-0">
                         <img
                           src={URL.createObjectURL(file)}
                           alt={file.name}
@@ -159,14 +157,15 @@ export function UploadPhotos() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-black truncate">{file.name}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-sm font-semibold text-white truncate">{file.name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
                           {(file.size / 1024).toFixed(0)} KB
                         </p>
                       </div>
                       <button
                         onClick={() => removeFile(file.name)}
-                        className="p-1 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                        className="p-1.5 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-400 transition-colors flex-shrink-0 cursor-pointer"
+                        aria-label={`Remove file ${file.name}`}
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -178,18 +177,18 @@ export function UploadPhotos() {
           </Card>
 
           {/* Upload CTA */}
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             {files.length > 0 && (
               <Button
                 variant="secondary"
                 onClick={() => setFiles([])}
-                className="flex-shrink-0"
+                className="flex-shrink-0 px-6"
               >
                 Clear All
               </Button>
             )}
             <Button
-              className="flex-1 py-3 text-base"
+              className="flex-1 py-3.5 text-base"
               onClick={handleUpload}
               isLoading={uploadStatus === 'uploading'}
               disabled={!selectedEventId || files.length === 0}
